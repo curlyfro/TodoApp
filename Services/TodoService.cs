@@ -1,47 +1,46 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Dapper;
+using System.Data;
 using TodoApp.Data;
 using TodoApp.Models;
 
-namespace TodoApp.Services;
-
 public class TodoService
 {
-    private readonly ApplicationDbContext _context;
+    private readonly DatabaseConnection _db;
 
-    public TodoService(ApplicationDbContext context)
+    public TodoService(DatabaseConnection db)
     {
-        _context = context;
+        _db = db;
     }
 
     public async Task<List<Todo>> GetTodosAsync()
     {
-        return await _context.Todos.ToListAsync();
+        using var connection = _db.CreateConnection();
+        return (await connection.QueryAsync<Todo>("SELECT * FROM Todos")).ToList();
+    }
+
+    public async Task<Todo> GetTodoAsync(int id)
+    {
+        using var connection = _db.CreateConnection();
+        return await connection.QuerySingleOrDefaultAsync<Todo>("SELECT * FROM Todos WHERE Id = @Id", new { Id = id });
     }
 
     public async Task AddTodoAsync(Todo todo)
     {
-        _context.Todos.Add(todo);
-        await _context.SaveChangesAsync();
+        using var connection = _db.CreateConnection();
+        var sql = "INSERT INTO Todos (Title, IsComplete) VALUES (@Title, @IsComplete); SELECT CAST(SCOPE_IDENTITY() as int)";
+        var id = await connection.ExecuteScalarAsync<int>(sql, todo);
+        todo.Id = id;
     }
 
     public async Task UpdateTodoAsync(Todo todo)
     {
-        _context.Todos.Update(todo);
-        await _context.SaveChangesAsync();
+        using var connection = _db.CreateConnection();
+        await connection.ExecuteAsync("UPDATE Todos SET Title = @Title, IsComplete = @IsComplete WHERE Id = @Id", todo);
     }
 
     public async Task DeleteTodoAsync(int id)
     {
-        var todo = await _context.Todos.FindAsync(id);
-        if (todo != null)
-        {
-            _context.Todos.Remove(todo);
-            await _context.SaveChangesAsync();
-        }
-    }
-    
-    public async Task<Todo> GetTodoAsync(int id)
-    {
-        return await _context.Todos.FindAsync(id);
+        using var connection = _db.CreateConnection();
+        await connection.ExecuteAsync("DELETE FROM Todos WHERE Id = @Id", new { Id = id });
     }
 }
