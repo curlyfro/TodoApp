@@ -1,5 +1,5 @@
 ﻿using System.Data;
-using Microsoft.Data.SqlClient;
+using Npgsql;
 
 namespace TodoApp.Data;
 
@@ -14,6 +14,6 @@ public class DatabaseConnection
 
     public IDbConnection CreateConnection()
     {
-        return new SqlConnection(_configuration.GetConnectionString("DefaultConnection"));
+        return new NpgsqlConnection(_configuration.GetConnectionString("DefaultConnection"));
     }
 }
