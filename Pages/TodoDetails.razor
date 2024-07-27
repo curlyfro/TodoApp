@@ -1,0 +1,39 @@
+﻿@page "/todo/{Id:int}"
+@using TodoApp.Models
+@using TodoApp.Services
+@inject TodoService TodoService
+@inject NavigationManager NavigationManager
+
+<h2>Todo Details</h2>
+
+@if (todo == null)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <div class="card">
+        <div class="card-body">
+            <h5 class="card-title">@todo.Title</h5>
+            <p class="card-text">Status: @(todo.IsComplete ? "Completed" : "Pending")</p>
+            <button class="btn btn-primary" @onclick="GoBack">Back to List</button>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    private Todo todo;
+
+    protected override async Task OnInitializedAsync()
+    {
+        todo = await TodoService.GetTodoAsync(Id);
+    }
+
+    private void GoBack()
+    {
+        NavigationManager.NavigateTo("/");
+    }
+}

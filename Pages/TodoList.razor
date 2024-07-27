@@ -1,0 +1,112 @@
+﻿@page "/"
+@using TodoApp.Models
+@using TodoApp.Services
+@inject TodoService TodoService
+
+<h1>Todo List</h1>
+
+<div class="form-group">
+    <input @bind="newTodoTitle" class="form-control" placeholder="New todo" />
+    <button class="btn btn-primary" @onclick="AddTodo">Add Todo</button>
+</div>
+
+@if (todos == null)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <ul class="list-group mt-3">
+        @foreach (var todo in todos)
+        {
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                @if (editingTodoId == todo.Id)
+                {
+                    <input @bind="todo.Title" class="form-control" />
+                    <div>
+                        <button class="btn btn-success btn-sm" @onclick="() => UpdateTodo(todo)">Save</button>
+                        <button class="btn btn-secondary btn-sm" @onclick="() => CancelEdit()">Cancel</button>
+                    </div>
+                }
+                else
+                {
+                    <div>
+                        <input type="checkbox" @bind="todo.IsComplete" @onclick="() => ToggleTodoStatus(todo)" />
+                        <span class="@(todo.IsComplete ? "text-decoration-line-through" : "")">
+                            <a href="/todo/@todo.Id">@todo.Title</a>
+                        </span>
+                    </div>
+                    <div>
+                        <button class="btn btn-info btn-sm" @onclick="() => EditTodo(todo.Id)">Edit</button>
+                        <button class="btn btn-danger btn-sm" @onclick="() => DeleteTodo(todo.Id)">Delete</button>
+                    </div>
+                }
+            </li>
+        }
+    </ul>
+}
+
+@code {
+    private List<Todo> todos;
+    private string newTodoTitle = "";
+    private int? editingTodoId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadTodos();
+    }
+
+    private async Task LoadTodos()
+    {
+        todos = await TodoService.GetTodosAsync();
+    }
+
+    // Create
+    private async Task AddTodo()
+    {
+        if (!string.IsNullOrWhiteSpace(newTodoTitle))
+        {
+            await TodoService.AddTodoAsync(new Todo { Title = newTodoTitle });
+            newTodoTitle = "";
+            await LoadTodos();
+        }
+    }
+
+    // Read
+    private async Task<Todo> GetTodo(int id)
+    {
+        return await TodoService.GetTodoAsync(id);
+    }
+
+    // Update
+    private async Task UpdateTodo(Todo todo)
+    {
+        await TodoService.UpdateTodoAsync(todo);
+        editingTodoId = null;
+        await LoadTodos();
+    }
+
+    private async Task ToggleTodoStatus(Todo todo)
+    {
+        todo.IsComplete = !todo.IsComplete;
+        await TodoService.UpdateTodoAsync(todo);
+    }
+
+    // Delete
+    private async Task DeleteTodo(int id)
+    {
+        await TodoService.DeleteTodoAsync(id);
+        await LoadTodos();
+    }
+
+    // Edit mode
+    private void EditTodo(int id)
+    {
+        editingTodoId = id;
+    }
+
+    private void CancelEdit()
+    {
+        editingTodoId = null;
+    }
+}
